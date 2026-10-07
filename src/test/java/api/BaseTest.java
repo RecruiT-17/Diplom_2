@@ -1,53 +1,40 @@
 package api;
 
-import io.qameta.allure.restassured.AllureRestAssured;
-import io.restassured.RestAssured;
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
+import api.model.User;
+import io.restassured.response.Response;
 import org.junit.Before;
+
+import java.util.List;
+
+import static org.apache.http.HttpStatus.SC_ACCEPTED;
+import static org.apache.http.HttpStatus.SC_OK;
 
 public class BaseTest {
 
-    protected static final String BASE_URL = "https://stellarburgers.education-services.ru";
-    protected static RequestSpecification requestSpec;
+    protected StellarBurgersClient client;
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = BASE_URL;
-
-        requestSpec = new RequestSpecBuilder()
-                .setContentType(ContentType.JSON)
-                .setBaseUri(BASE_URL)
-                .addFilter(new AllureRestAssured())
-                .build();
+        client = new StellarBurgersClient();
     }
 
     protected String createUserAndGetToken(String email, String password, String name) {
-        String body = String.format(
-                "{\"email\":\"%s\",\"password\":\"%s\",\"name\":\"%s\"}",
-                email, password, name);
+        User user = new User(email, password, name);
+        Response response = client.register(user);
 
-        return RestAssured.given()
-                .spec(requestSpec)
-                .body(body)
-                .when()
-                .post("/api/auth/register")
-                .then()
-                .statusCode(200)
-                .extract()
-                .path("accessToken");
+
+        String accessToken = response.path("accessToken");
+
+        response.then().statusCode(SC_OK);
+
+        return accessToken;
     }
 
     protected void deleteUser(String accessToken) {
         if (accessToken != null) {
-            RestAssured.given()
-                    .spec(requestSpec)
-                    .header("Authorization", accessToken)
-                    .when()
-                    .delete("/api/auth/user")
+            client.deleteUser(accessToken)
                     .then()
-                    .statusCode(202);
+                    .statusCode(SC_ACCEPTED);
         }
     }
 
@@ -61,5 +48,15 @@ public class BaseTest {
 
     protected String generateName() {
         return "User_" + (int) (Math.random() * 10000);
+    }
+
+    protected List<String> getIngredientIds() {
+        Response response = client.getIngredients();
+
+        String bunId = response.path("data.find { it.type == 'bun' }._id");
+        String sauceId = response.path("data.find { it.type == 'sauce' }._id");
+        String mainId = response.path("data.find { it.type == 'main' }._id");
+
+        return java.util.Arrays.asList(bunId, sauceId, mainId);
     }
 }

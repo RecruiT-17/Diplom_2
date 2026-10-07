@@ -1,5 +1,6 @@
 package api;
 
+import api.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
@@ -7,7 +8,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -31,52 +33,37 @@ public class CreateUserTest extends BaseTest {
         deleteUser(accessToken);
     }
 
-    private String buildUserBody() {
-        return String.format(
-                "{\"email\":\"%s\",\"password\":\"%s\",\"name\":\"%s\"}",
-                email, password, name);
-    }
-
     @Test
     @DisplayName("Создание уникального пользователя")
     @Description("Проверка успешной регистрации нового пользователя с валидными данными")
     public void createUniqueUserSuccess() {
-        Response response = given()
-                .spec(requestSpec)
-                .body(buildUserBody())
-                .when()
-                .post("/api/auth/register");
+        User user = new User(email, password, name);
+        Response response = client.register(user);
+
+        accessToken = response.path("accessToken");
 
         response.then()
-                .statusCode(200)
+                .statusCode(SC_OK)
                 .body("success", equalTo(true))
                 .body("user.email", equalTo(email))
                 .body("user.name", equalTo(name))
                 .body("accessToken", notNullValue())
                 .body("refreshToken", notNullValue());
-
-        accessToken = response.path("accessToken");
     }
 
     @Test
     @DisplayName("Создание уже зарегистрированного пользователя")
     @Description("Повторная регистрация с тем же email должна вернуть ошибку 403")
     public void createDuplicateUserReturnsError() {
-        Response first = given()
-                .spec(requestSpec)
-                .body(buildUserBody())
-                .when()
-                .post("/api/auth/register");
-        first.then().statusCode(200);
-        accessToken = first.path("accessToken");
+        User user = new User(email, password, name);
 
-        given()
-                .spec(requestSpec)
-                .body(buildUserBody())
-                .when()
-                .post("/api/auth/register")
+        Response first = client.register(user);
+        accessToken = first.path("accessToken");
+        first.then().statusCode(SC_OK);
+
+        client.register(user)
                 .then()
-                .statusCode(403)
+                .statusCode(SC_FORBIDDEN)
                 .body("success", equalTo(false))
                 .body("message", equalTo("User already exists"));
     }
@@ -85,17 +72,13 @@ public class CreateUserTest extends BaseTest {
     @DisplayName("Создание пользователя без обязательного поля email")
     @Description("Отсутствие email должно вернуть ошибку 403")
     public void createUserWithoutEmailReturnsError() {
-        String body = String.format(
-                "{\"password\":\"%s\",\"name\":\"%s\"}",
-                password, name);
+        User user = new User();
+        user.setPassword(password);
+        user.setName(name);
 
-        given()
-                .spec(requestSpec)
-                .body(body)
-                .when()
-                .post("/api/auth/register")
+        client.register(user)
                 .then()
-                .statusCode(403)
+                .statusCode(SC_FORBIDDEN)
                 .body("success", equalTo(false))
                 .body("message", equalTo("Email, password and name are required fields"));
     }
@@ -104,17 +87,13 @@ public class CreateUserTest extends BaseTest {
     @DisplayName("Создание пользователя без обязательного поля password")
     @Description("Отсутствие password должно вернуть ошибку 403")
     public void createUserWithoutPasswordReturnsError() {
-        String body = String.format(
-                "{\"email\":\"%s\",\"name\":\"%s\"}",
-                email, name);
+        User user = new User();
+        user.setEmail(email);
+        user.setName(name);
 
-        given()
-                .spec(requestSpec)
-                .body(body)
-                .when()
-                .post("/api/auth/register")
+        client.register(user)
                 .then()
-                .statusCode(403)
+                .statusCode(SC_FORBIDDEN)
                 .body("success", equalTo(false))
                 .body("message", equalTo("Email, password and name are required fields"));
     }
@@ -123,17 +102,13 @@ public class CreateUserTest extends BaseTest {
     @DisplayName("Создание пользователя без обязательного поля name")
     @Description("Отсутствие name должно вернуть ошибку 403")
     public void createUserWithoutNameReturnsError() {
-        String body = String.format(
-                "{\"email\":\"%s\",\"password\":\"%s\"}",
-                email, password);
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password);
 
-        given()
-                .spec(requestSpec)
-                .body(body)
-                .when()
-                .post("/api/auth/register")
+        client.register(user)
                 .then()
-                .statusCode(403)
+                .statusCode(SC_FORBIDDEN)
                 .body("success", equalTo(false))
                 .body("message", equalTo("Email, password and name are required fields"));
     }
