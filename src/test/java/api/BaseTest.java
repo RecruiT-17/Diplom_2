@@ -1,6 +1,7 @@
 package api;
 
 import api.model.User;
+import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import org.junit.Before;
 
@@ -18,10 +19,10 @@ public class BaseTest {
         client = new StellarBurgersClient();
     }
 
+    @Step("Создание пользователя и получение токена: {email}")
     protected String createUserAndGetToken(String email, String password, String name) {
         User user = new User(email, password, name);
         Response response = client.register(user);
-
 
         String accessToken = response.path("accessToken");
 
@@ -30,6 +31,7 @@ public class BaseTest {
         return accessToken;
     }
 
+    @Step("Удаление пользователя")
     protected void deleteUser(String accessToken) {
         if (accessToken != null) {
             client.deleteUser(accessToken)
@@ -38,18 +40,22 @@ public class BaseTest {
         }
     }
 
+    @Step("Генерация email")
     protected String generateEmail() {
         return "test_" + System.currentTimeMillis() + "_" + (int) (Math.random() * 10000) + "@yandex.ru";
     }
 
+    @Step("Генерация пароля")
     protected String generatePassword() {
         return "pass_" + (int) (Math.random() * 100000);
     }
 
+    @Step("Генерация имени")
     protected String generateName() {
         return "User_" + (int) (Math.random() * 10000);
     }
 
+    @Step("Получение ID ингредиентов (булочка, соус, начинка)")
     protected List<String> getIngredientIds() {
         Response response = client.getIngredients();
 

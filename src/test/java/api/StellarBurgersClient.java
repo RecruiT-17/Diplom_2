@@ -2,6 +2,7 @@ package api;
 
 import api.model.Order;
 import api.model.User;
+import io.qameta.allure.Step;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -13,7 +14,7 @@ import static io.restassured.RestAssured.given;
 
 public class StellarBurgersClient {
 
-    public static final String BASE_URL = "https://stellarburgers.education-services.ru";
+    public static final String BASE_URL = "https://qa-stellarburgers.education-services.ru";
 
     private final RequestSpecification requestSpec;
 
@@ -30,6 +31,7 @@ public class StellarBurgersClient {
         return requestSpec;
     }
 
+    @Step("Регистрация пользователя: {user.email}")
     public Response register(User user) {
         return given()
                 .spec(requestSpec)
@@ -38,6 +40,7 @@ public class StellarBurgersClient {
                 .post("/api/auth/register");
     }
 
+    @Step("Авторизация пользователя: {user.email}")
     public Response login(User user) {
         return given()
                 .spec(requestSpec)
@@ -46,6 +49,7 @@ public class StellarBurgersClient {
                 .post("/api/auth/login");
     }
 
+    @Step("Удаление пользователя по токену")
     public Response deleteUser(String accessToken) {
         return given()
                 .spec(requestSpec)
@@ -54,6 +58,7 @@ public class StellarBurgersClient {
                 .delete("/api/auth/user");
     }
 
+    @Step("Получение списка ингредиентов")
     public Response getIngredients() {
         return given()
                 .spec(requestSpec)
@@ -61,6 +66,7 @@ public class StellarBurgersClient {
                 .get("/api/ingredients");
     }
 
+    @Step("Создание заказа с ингредиентами: {order.ingredients}")
     public Response createOrder(Order order, String accessToken) {
         RequestSpecification spec = given().spec(requestSpec).body(order);
         if (accessToken != null) {
@@ -69,6 +75,7 @@ public class StellarBurgersClient {
         return spec.when().post("/api/orders");
     }
 
+    @Step("Создание заказа с сырым телом запроса: {rawBody}")
     public Response createOrderWithRawBody(String rawBody, String accessToken) {
         RequestSpecification spec = given().spec(requestSpec).body(rawBody);
         if (accessToken != null) {
